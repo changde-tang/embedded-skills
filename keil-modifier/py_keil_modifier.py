@@ -195,6 +195,91 @@ def cmd_remove_group(args):
     print("[Saved]", args.project)
 
 
+def _get_include_path(tree):
+    """获取 IncludePath 节点列表"""
+    paths = []
+    for vc in tree.findall(".//VariousControls"):
+        ip = vc.find("IncludePath")
+        if ip is not None and ip.text:
+            paths.extend(ip.text.split(";"))
+    return paths
+
+
+def _set_include_path(tree, paths):
+    """设置 IncludePath"""
+    for vc in tree.findall(".//VariousControls"):
+        ip = vc.find("IncludePath")
+        if ip is not None:
+            ip.text = ";".join(paths)
+            return
+
+
+def cmd_add_include_path(args):
+    """添加 include 路径"""
+    tree = ET.parse(args.project)
+    root = tree.getroot()
+
+    paths = _get_include_path(tree)
+    original_count = len(paths)
+
+    for new_path in args.path:
+        if new_path not in paths:
+            paths.append(new_path)
+            print(f"[Added] Include path: '{new_path}'")
+        else:
+            print(f"[Skip] Include path already exists: '{new_path}'")
+
+    if len(paths) == original_count:
+        print("[Info] No changes made.")
+        return
+
+    _set_include_path(tree, paths)
+    backup(args.project)
+    indent_xml(root)
+    tree.write(args.project, encoding="utf-8", xml_declaration=True)
+    print("[Saved]", args.project)
+
+
+def cmd_remove_include_path(args):
+    """移除 include 路径"""
+    tree = ET.parse(args.project)
+    root = tree.getroot()
+
+    paths = _get_include_path(tree)
+    original_count = len(paths)
+
+    for path_to_remove in args.path:
+        if path_to_remove in paths:
+            paths.remove(path_to_remove)
+            print(f"[Removed] Include path: '{path_to_remove}'")
+        else:
+            print(f"[Not found] Include path: '{path_to_remove}'")
+
+    if len(paths) == original_count:
+        print("[Info] No changes made.")
+        return
+
+    _set_include_path(tree, paths)
+    backup(args.project)
+    indent_xml(root)
+    tree.write(args.project, encoding="utf-8", xml_declaration=True)
+    print("[Saved]", args.project)
+
+
+def cmd_list_include_paths(args):
+    """列出所有 include 路径"""
+    tree = ET.parse(args.project)
+    root = tree.getroot()
+
+    paths = _get_include_path(tree)
+    if paths:
+        print("\n[Include Paths]")
+        for p in paths:
+            print(f"  - {p}")
+    else:
+        print("[Info] No include paths found.")
+
+
 # ──────────────────────────────────────────────
 # CLI 入口
 # ──────────────────────────────────────────────
@@ -228,15 +313,29 @@ def main():
     p_rg = sub.add_parser("remove-group", help="删除 Group（含其下所有文件）")
     p_rg.add_argument("-g", "--group", required=True, help="要删除的 Group 名称")
 
-    args = parser.parse_args()
+    # list-include-paths
+    sub.add_parser("list-include-paths", help="列出所有 include 路径")
+
+    # add-include-path
+    p_aip = sub.add_parser("add-include-path", help="添加 include 路径")
+    p_aip.add_argument("-i", "--path", required=True, nargs="+", help="要添加的路径（可多个）")
+
+    # remove-include-path
+    p_rip = sub.add_parser("remove-include-path", help="移除 include 路径")
+    p_rip.add_argument("-i", "--path", required=True, nargs="+", help="要移除的路径（可多个）")
 
     dispatch = {
-        "list":         cmd_list,
-        "add":          cmd_add,
-        "remove":       cmd_remove,
-        "add-group":    cmd_add_group,
-        "remove-group": cmd_remove_group,
+        "list":                  cmd_list,
+        "add":                   cmd_add,
+        "remove":                cmd_remove,
+        "add-group":             cmd_add_group,
+        "remove-group":          cmd_remove_group,
+        "list-include-paths":    cmd_list_include_paths,
+        "add-include-path":      cmd_add_include_path,
+        "remove-include-path":   cmd_remove_include_path,
     }
+
+    args = parser.parse_args()
     dispatch[args.command](args)
 
 

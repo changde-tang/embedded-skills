@@ -67,7 +67,7 @@ python py_keil_parser.py <工程文件路径1> [工程文件路径2] ...
 
 **脚本**: `keil-modifier/py_keil_modifier.py`
 
-修改 `.uvprojx` 工程文件，支持列出/添加/删除文件和 Group。
+修改 `.uvprojx` 工程文件，支持列出/添加/删除文件和 Group，管理 include 路径。
 
 ```bash
 # 列出所有 Group 和文件
@@ -84,13 +84,23 @@ python py_keil_modifier.py -p MyProject.uvprojx add-group -g "Middleware"
 
 # 删除 Group
 python py_keil_modifier.py -p MyProject.uvprojx remove-group -g "Middleware"
+
+# 列出所有 include 路径
+python py_keil_modifier.py -p MyProject.uvprojx list-include-paths
+
+# 添加 include 路径
+python py_keil_modifier.py -p MyProject.uvprojx add-include-path -i ".\inc" ".\drivers\inc"
+
+# 移除 include 路径
+python py_keil_modifier.py -p MyProject.uvprojx remove-include-path -i ".\old_path"
 ```
 
 **特性**:
 - 自动备份原文件（`.uvprojx.bak`）
 - 自动创建不存在的 Group
-- 添加时自动去重
+- 添加时自动去重（文件和 include 路径）
 - 写回后 XML 格式化保持可读
+- 支持 include 路径的增删查
 
 ---
 

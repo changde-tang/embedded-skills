@@ -1,13 +1,13 @@
 ---
 name: keil-uvprojx-modifier
-description: 使用此 skill 来操作 Keil MDK 的 .uvprojx 工程文件。适用场景包括：列出工程中所有 Group 和文件、向指定 Group 添加源文件（.c/.cpp/.s/.asm/.lib/.h 等）s、从工程中移除文件、新建或删除 Group。当用户提到 Keil、uvprojx、MDK 工程文件管理，或需要批量修改 Keil 工程结构时，使用此 skill。
+description: 使用此 skill 来操作 Keil MDK 的 .uvprojx 工程文件。适用场景包括：列出工程中所有 Group 和文件、向指定 Group 添加源文件（.c/.cpp/.s/.asm/.lib/.h 等）、从工程中移除文件、新建或删除 Group、管理 include 路径（添加/删除/列出）。当用户提到 Keil、uvprojx、MDK 工程文件管理，或需要批量修改 Keil 工程结构时，使用此 skill。
 ---
 
 # Keil .uvprojx 工程文件修改工具
 
 ## 工具概述
 
-`py_keil_modifier.py` 是一个用于修改 Keil MDK `.uvprojx` XML 工程文件的命令行脚本。它支持列出、添加、删除文件和 Group，每次写入前自动备份原文件。
+`py_keil_modifier.py` 是一个用于修改 Keil MDK `.uvprojx` XML 工程文件的命令行脚本。它支持列出、添加、删除文件和 Group，管理 include 路径，每次写入前自动备份原文件。
 
 ## 文件类型映射（FileType）
 
@@ -76,6 +76,26 @@ python py_keil_modifier.py -p MyProject.uvprojx remove-group \
     -g "Middleware"
 ```
 
+### 列出所有 include 路径
+
+```bash
+python py_keil_modifier.py -p MyProject.uvprojx list-include-paths
+```
+
+### 添加 include 路径
+
+```bash
+python py_keil_modifier.py -p MyProject.uvprojx add-include-path \
+    -i ".\inc" ".\drivers\inc"
+```
+
+### 移除 include 路径
+
+```bash
+python py_keil_modifier.py -p MyProject.uvprojx remove-include-path \
+    -i ".\old_path"
+```
+
 ## Python API 用法
 
 也可以直接在 Python 脚本中调用各函数：
@@ -83,6 +103,7 @@ python py_keil_modifier.py -p MyProject.uvprojx remove-group \
 ```python
 import argparse
 from py_keil_modifier import cmd_add, cmd_list, cmd_remove, cmd_add_group, cmd_remove_group
+from py_keil_modifier import cmd_list_include_paths, cmd_add_include_path, cmd_remove_include_path
 
 # 构造 args 命名空间
 args = argparse.Namespace(
@@ -97,6 +118,16 @@ cmd_add(args)
 # 列出工程结构
 args_list = argparse.Namespace(project="MyProject.uvprojx")
 cmd_list(args_list)
+
+# 列出 include 路径
+cmd_list_include_paths(args_list)
+
+# 添加 include 路径
+args_include = argparse.Namespace(
+    project="MyProject.uvprojx",
+    path=[".\\inc", ".\\drivers\\inc"]
+)
+cmd_add_include_path(args_include)
 ```
 
 ## 批量操作示例
@@ -125,11 +156,32 @@ for file_path, group_name in files_to_add:
     cmd_add(args)
 ```
 
+批量添加 include 路径：
+
+```python
+import argparse
+from py_keil_modifier import cmd_add_include_path
+
+PROJECT = "MyProject.uvprojx"
+
+include_paths = [
+    ".\\inc",
+    ".\\drivers\\inc", 
+    ".\\middleware\\inc"
+]
+
+args = argparse.Namespace(
+    project=PROJECT,
+    path=include_paths
+)
+cmd_add_include_path(args)
+```
+
 ## 行为说明
 
 - **自动备份**：每次写入前将原文件复制为 `<文件名>.bak`，例如 `MyProject.uvprojx.bak`。
 - **自动创建 Group**：执行 `add` 时若目标 Group 不存在，自动新建。
-- **去重检查**：添加文件时若 `FilePath` 已存在于该 Group，跳过并输出 `[Skip]`。
+- **去重检查**：添加文件时若 `FilePath` 已存在于该 Group，跳过并输出 `[Skip]`；添加 include 路径时也会检查重复。
 - **多 Target 支持**：操作会作用于工程中的**所有** Target，适合单 Target 工程；多 Target 工程请注意此行为。
 - **XML 格式化**：写回后 XML 会被重新缩进，保持人类可读。
 - **编码**：输出文件使用 `UTF-8` 编码并包含 XML 声明。
