@@ -9,8 +9,6 @@ import queue
 def parse_send_arg(s):
     """
     解析 --send 参数，格式：秒数:内容
-    支持 \\n \\r \\t 转义
-    例如：5:hello\\n  ->  (5.0, b'hello\n')
     """
     try:
         colon = s.index(":")
@@ -28,8 +26,6 @@ def parse_send_arg(s):
     if t < 0:
         raise argparse.ArgumentTypeError(f"--send 时间不能为负数，收到: {t}")
 
-    # 处理转义字符
-    content_str = content_str.replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t")
     data = content_str.encode("utf-8")
 
     return (t, data)

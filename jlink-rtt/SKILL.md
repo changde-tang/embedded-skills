@@ -32,7 +32,7 @@ python py_jlink_rtt.py -a 0x20000B90
 python py_jlink_rtt.py -c 1 -t 30 --debug
 
 # 监听日志的同时定时发送数据（支持多次 --send）
-python py_jlink_rtt.py -d GD32F303RC -t 10 --send 3:hello\n --send 6:test\n
+python py_jlink_rtt.py -d GD32F303RC -t 10 --send 3:hello --send 6:test
 ```
 
 ## 参数说明
@@ -54,16 +54,14 @@ python py_jlink_rtt.py -d GD32F303RC -t 10 --send 3:hello\n --send 6:test\n
 
 - **秒数**：触发发送的时间点（相对于开始连接的时间）
 - **内容**：要发送的字符串数据
-- **转义字符**：`\n`（换行）、`\r`（回车）、`\t`（Tab）
 - 可重复使用多个 `--send` 实现多次发送
 
 **示例**：
-```bash
-# 第 3 秒发送 "hello\n"，第 7 秒发送 "start_test\n"
---send 3:hello\n --send 7:start_test\n
-```
 
-> 注意：`\n` 等转义字符在命令行中需要正确引用，建议使用双引号包裹整个参数
+```bash
+# 第 3 秒发送 "hello"，第 7 秒发送 "start_test"
+--send 3:hello --send 7:start_test
+```
 
 ## RTT 控制块地址
 
