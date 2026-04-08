@@ -65,7 +65,7 @@ python py_jlink_rtt.py -d GD32F303RC -t 10 --send 3:hello --send 6:test
 
 ## RTT 控制块地址
 
-- **自动扫描**：脚本扫描 RAM 区域（默认 `0x20000000` 起，范围 128KB），查找 `"SEGGER RTT"` 标识符。首次使用推荐此方式。
+- **自动扫描**：脚本采用两层策略：优先调用 J-Link SDK 内置的 `rtt_start(0)` 自动定位控制块（更可靠）；若 SDK 扫描失败，则回退到 Python 手动扫描 RAM 区域（`0x20000000` 起，128KB 范围），查找 `"SEGGER RTT"` 标识符。首次使用推荐此方式。
 - **手动指定**：如果已知地址（可从 J-Link RTT Viewer 或 map 文件中获取），用 `-a` 参数指定，启动更快。
 
 > 注意：每次重新编译固件后，RTT 控制块地址可能改变，建议重新自动扫描或查阅新 map 文件。
@@ -73,7 +73,7 @@ python py_jlink_rtt.py -d GD32F303RC -t 10 --send 3:hello --send 6:test
 ## 工作原理
 
 1. 连接 J-Link，以 SWD 接口连接目标芯片
-2. 扫描/定位 RTT 控制块（`_SEGGER_RTT` 结构体）
+2. 定位 RTT 控制块：优先使用 J-Link SDK 内置自动扫描，失败则回退 Python 手动扫描
 3. 启动 RTT 会话，周期性调用 `rtt_read()` 读取缓冲区
 4. 根据 `--send` 计划定时调用 `rtt_write()` 发送数据
 5. 实时将 UTF-8 解码后的内容输出到终端

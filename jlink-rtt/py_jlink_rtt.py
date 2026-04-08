@@ -98,19 +98,33 @@ def read_rtt_logs(device_name="GD32F103C8", channel=0, timeout_sec=10,
             pass
 
         if rtt_cb_addr is None:
-            scanned_addr = find_rtt_control_block(jlink)
-            if scanned_addr is None:
-                print("Error: Unable to auto-scan RTT control block, please specify address manually")
-                jlink.close()
-                return
-            rtt_cb_addr = scanned_addr
-
-        jlink.rtt_start(rtt_cb_addr)
-        time.sleep(0.1)
-
-        num_up = jlink.rtt_get_num_up_buffers()
-        num_down = jlink.rtt_get_num_down_buffers()
-        print(f"RTT session started (control block: 0x{rtt_cb_addr:08X}, up: {num_up}, down: {num_down})")
+            # 优先尝试 J-Link SDK 内置自动扫描（更可靠）
+            try:
+                jlink.rtt_start(0)
+                time.sleep(0.1)
+                num_up = jlink.rtt_get_num_up_buffers()
+                num_down = jlink.rtt_get_num_down_buffers()
+                print(f"RTT session started (SDK auto-scan, up: {num_up}, down: {num_down})")
+            except Exception as sdk_err:
+                # SDK 自动扫描失败时，回退到 Python 手动扫描
+                print(f"SDK auto-scan failed ({sdk_err}), trying manual scan...")
+                scanned_addr = find_rtt_control_block(jlink)
+                if scanned_addr is None:
+                    print("Error: Unable to auto-scan RTT control block, please specify address manually")
+                    jlink.close()
+                    return
+                rtt_cb_addr = scanned_addr
+                jlink.rtt_start(rtt_cb_addr)
+                time.sleep(0.1)
+                num_up = jlink.rtt_get_num_up_buffers()
+                num_down = jlink.rtt_get_num_down_buffers()
+                print(f"RTT session started (control block: 0x{rtt_cb_addr:08X}, up: {num_up}, down: {num_down})")
+        else:
+            jlink.rtt_start(rtt_cb_addr)
+            time.sleep(0.1)
+            num_up = jlink.rtt_get_num_up_buffers()
+            num_down = jlink.rtt_get_num_down_buffers()
+            print(f"RTT session started (control block: 0x{rtt_cb_addr:08X}, up: {num_up}, down: {num_down})")
 
     except Exception as e:
         print(f"RTT startup exception: {e}")
