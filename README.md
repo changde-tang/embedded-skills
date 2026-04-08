@@ -6,6 +6,7 @@
 
 ```
 embedded/
+├── agent-log-helper/     # RTT 结构化日志系统
 ├── keil-parser/          # Keil 工程配置解析
 ├── keil-modifier/        # Keil .uvprojx 文件修改
 ├── keil-build/           # Keil 工程编译
@@ -36,7 +37,25 @@ pip install pylink
 
 ## Skill 列表
 
-### 1. keil-parser（工程配置解析）
+### 1. agent-log-helper（RTT 结构化日志）
+
+**文件**: `agent-log-helper/agent_log.c` + `agent_log.h`
+
+基于 SEGGER RTT 的日志系统，支持多模块分类（ SYS、I2C、SENSOR、UART、ADC、GPIO、TIMER）、日志级别过滤（OFF/ERR/WRN/INF/DBG/FAT）、格式化输出和颜色显示。
+
+```c
+agent_log_init();                              // 初始化
+agent_log_inf(AGENT_LOG_MODULE_SYS, "BOOT");  // 无参日志
+agent_log_err_fmt(AGENT_LOG_MODULE_I2C, "TIMEOUT", "addr=0x48"); // 格式化日志
+agent_log_set_level(AGENT_LOG_LEVEL_INF);     // 设置级别
+agent_log_set_color_enable(0);                // 关闭颜色（便于日志重定向）
+```
+
+**注意**：`agent_log_get_tick()` 为 weak symbol，需在应用层实现。
+
+---
+
+### 2. keil-parser（工程配置解析）
 
 **脚本**: `keil-parser/py_keil_parser.py`
 
@@ -63,7 +82,7 @@ python py_keil_parser.py <工程文件路径1> [工程文件路径2] ...
 
 ---
 
-### 2. keil-modifier（工程文件修改）
+### 3. keil-modifier（工程文件修改）
 
 **脚本**: `keil-modifier/py_keil_modifier.py`
 
@@ -104,7 +123,7 @@ python py_keil_modifier.py -p MyProject.uvprojx remove-include-path -i ".\old_pa
 
 ---
 
-### 3. keil-build（工程编译）
+### 4. keil-build（工程编译）
 
 **脚本**: `keil-build/py_keil_build.py`
 
@@ -134,7 +153,7 @@ python py_keil_build.py -p <工程.uvprojx> -k "D:\keil\UV4\UV4.exe"
 
 ---
 
-### 4. jlink-download（固件烧录）
+### 5. jlink-download（固件烧录）
 
 **脚本**: `jlink-download/py_jlink_download.py`
 
@@ -166,7 +185,7 @@ python py_jlink_download.py firmware.bin --no-erase --no-verify
 
 ---
 
-### 5. jlink-rtt（RTT 日志读取）
+### 6. jlink-rtt（RTT 日志读取）
 
 **脚本**: `jlink-rtt/py_jlink_rtt.py`
 
@@ -201,10 +220,10 @@ python py_jlink_rtt.py -c 1 -t 30
 ## 典型工作流
 
 ```
-1. keil-parser    → 解析工程配置，确认宏定义和路径
-2. keil-build     → 编译工程，检查是否有错误
-3. jlink-download → 烧录固件到芯片
-4. jlink-rtt      → 调试时读取 RTT 日志
+1. agent-log-helper → 向工程添加 RTT 日志系统
+2. keil-build       → 编译工程，检查是否有错误
+3. jlink-download   → 烧录固件到芯片
+4. jlink-rtt        → 调试时读取 RTT 日志
 ```
 
 ---
