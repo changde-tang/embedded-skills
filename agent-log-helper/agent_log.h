@@ -39,6 +39,8 @@
 #define AGENT_LOG_H
 
 #include <stdint.h>
+#include "FreeRTOS.h"
+#include "task.h"
 
 // ====================== RTT 配置 ======================
 #define AGENT_LOG_RTT_CHANNEL     0
@@ -78,11 +80,11 @@ typedef enum {
 // ====================== 日志级别 ======================
 typedef enum {
     AGENT_LOG_LEVEL_OFF = 0,
+    AGENT_LOG_LEVEL_FAT,    /* 最高优先级，始终显示 */
     AGENT_LOG_LEVEL_ERR,
     AGENT_LOG_LEVEL_WRN,
     AGENT_LOG_LEVEL_INF,
-    AGENT_LOG_LEVEL_DBG,
-    AGENT_LOG_LEVEL_FAT
+    AGENT_LOG_LEVEL_DBG     /* 最低优先级，最详细 */
 } agent_log_level_t;
 
 // ====================== 级别名称（固定3字符） ======================
@@ -93,7 +95,7 @@ typedef enum {
 #define AGENT_LOG_LVL_FAT  "FAT"
 
 // ====================== 默认配置 ======================
-#define AGENT_LOG_DEFAULT_LEVEL  AGENT_LOG_LEVEL_FAT
+#define AGENT_LOG_DEFAULT_LEVEL  AGENT_LOG_LEVEL_DBG
 
 
 /**
@@ -200,6 +202,42 @@ int agent_log_has_data(void);
  * @note 如果读取的数据以换行符结尾，换行符会被移除
  */
 int agent_log_read(char *buffer, unsigned int buffer_size);
+
+/* ==================== 任务相关接口 ==================== */
+
+/**
+ * @brief Agent Log 任务（弱符号实现）
+ *
+ * 默认的 RTT 命令接收任务。功能包括：
+ * - 初始化日志系统
+ * - 循环读取 RTT 下行数据
+ * - 调用 agent_log_parse_cmd() 解析并执行命令
+ *
+ * 应用层可重新定义此函数以自定义行为。
+ *
+ * @param pvParameters 任务参数（未使用）
+ */
+void agent_log_task(void *pvParameters);
+
+/**
+ * @brief 创建 Agent Log 任务（弱符号实现）
+ *
+ * 默认使用 xTaskCreate() 创建 agent_log_task。
+ * 应用层可重新定义此函数以自定义任务创建方式。
+ *
+ * @return pdTRUE if task was created successfully, pdFALSE otherwise
+ */
+BaseType_t agent_log_task_create(void);
+
+/**
+ * @brief 命令解析接口（弱符号实现）
+ *
+ * 默认空实现。应用层可通过重新定义此函数提供命令解析能力。
+ * agent_log_task() 默认会调用此函数处理接收到的命令。
+ *
+ * @param cmd 接收到的命令字符串（已去除尾部换行符）
+ */
+void agent_log_parse_cmd(char *cmd);
 
 /* ==================== 无参版本宏 ====================
  * 适用于仅需记录事件发生，无需附加数据的情况。

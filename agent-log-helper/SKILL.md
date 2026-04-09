@@ -101,6 +101,32 @@ int main(void)
 
 ## API 参考
 
+### 系统控制接口
+
+| 函数 | 说明 |
+|------|------|
+| `agent_log_init()` | 初始化日志系统，调用 SEGGER_RTT_Init() |
+| `agent_log_set_level(level)` | 设置全局日志级别 |
+| `agent_log_get_level()` | 获取当前全局日志级别 |
+| `agent_log_set_color_enable(enable)` | 设置颜色开关（1=启用，0=关闭） |
+| `agent_log_get_color_enable()` | 获取颜色开关状态 |
+| `agent_log_get_tick()` | 获取系统 tick 值（weak symbol，需应用层实现） |
+
+### RTT 数据读取接口
+
+| 函数 | 说明 |
+|------|------|
+| `agent_log_has_data()` | 检查 RTT 下行缓冲区是否有数据可读 |
+| `agent_log_read(buf, size)` | 从 RTT 下行缓冲区读取数据 |
+
+### RTOS 任务接口（可选）
+
+| 函数 | 说明 |
+|------|------|
+| `agent_log_task()` | 默认的 RTT 命令接收任务（weak symbol） |
+| `agent_log_task_create()` | 创建 Agent Log 任务（weak symbol） |
+| `agent_log_parse_cmd(cmd)` | 命令解析接口（weak symbol，可由应用层重定义） |
+
 ### 日志宏（无格式化版本）
 
 适用于仅需记录事件发生，无需附加数据：
@@ -167,17 +193,22 @@ agent_log_fat_loc_fmt(mod, event, ...);    // 致命错误级别
 
 ## 日志级别
 
-| 级别 | 说明 | 典型用途 |
-|------|------|----------|
-| FAT | 致命错误 | 系统即将停机或复位 |
-| ERR | 功能失败 | 已降级运行 |
-| WRN | 异常情况 | 仍可继续 |
-| INF | 正常运行节点 | 日志主干 |
-| DBG | 调试信息 | 正常运行时关闭 |
+| 级别 | 枚举值 | 说明 | 典型用途 |
+|------|--------|------|----------|
+| OFF | `AGENT_LOG_LEVEL_OFF` | 关闭 | 关闭所有日志 |
+| FAT | `AGENT_LOG_LEVEL_FAT` | 致命错误 | 系统即将停机或复位 |
+| ERR | `AGENT_LOG_LEVEL_ERR` | 功能失败 | 已降级运行 |
+| WRN | `AGENT_LOG_LEVEL_WRN` | 异常情况 | 仍可继续 |
+| INF | `AGENT_LOG_LEVEL_INF` | 正常运行节点 | 日志主干 |
+| DBG | `AGENT_LOG_LEVEL_DBG` | 调试信息 | 正常运行时关闭 |
 
-**级别数值**：OFF(0) < ERR(1) < WRN(2) < INF(3) < DBG(4) < FAT(5)
+**级别数值**：OFF(0) < FAT(1) < ERR(2) < WRN(3) < INF(4) < DBG(5)
+- **数值越小级别越高**（FAT 最高优先级，始终显示）
+- **数值越大级别越低**（DBG 最低优先级，最详细）
 
-**默认值**：`AGENT_LOG_LEVEL_FAT`（最冗长，全部输出）
+**默认值**：`AGENT_LOG_LEVEL_DBG`（最冗长，全部输出）
+
+**过滤规则**：输出 `level <= s_log_level` 的日志，即只输出**级别数值大于等于当前级别**的日志。
 
 ---
 
@@ -224,29 +255,101 @@ agent_log_err_loc_fmt(AGENT_LOG_MODULE_I2C, "BUS_ERROR",
 
 ---
 
-## 动态调整日志级别
+## RTOS 任务使用方式
 
-可以在运行时通过 RTT 下行通道接收命令调整日志级别：
+### 方式一：使用内置任务（推荐）
+
+系统提供 `agent_log_task_create()` 创建默认的 RTT 命令接收任务：
 
 ```c
-char rx_buf[128];
+#include "agent_log.h"
 
-while (1) {
-    if (agent_log_has_data()) {
-        int rx_len = agent_log_read(rx_buf, sizeof(rx_buf));
-        if (rx_len > 0) {
-            if (strcmp(rx_buf, "dbg") == 0) {
-                agent_log_set_level(AGENT_LOG_LEVEL_DBG);
-                agent_log_inf(AGENT_LOG_MODULE_SYS, "LEVEL_CHG_DBG");
-            } else if (strcmp(rx_buf, "inf") == 0) {
-                agent_log_set_level(AGENT_LOG_LEVEL_INF);
-                agent_log_inf(AGENT_LOG_MODULE_SYS, "LEVEL_CHG_INF");
-            }
-        }
-    }
-    vTaskDelay(pdMS_TO_TICKS(10));
+int main(void)
+{
+    // 系统硬件初始化...
+
+    agent_log_init();  // 可选，系统启动时调用
+
+    // 创建 Agent Log 任务（接收 RTT 命令）
+    agent_log_task_create();
+
+    // 开始任务调度
+    vTaskStartScheduler();
+
+    while (1) {}
 }
 ```
+
+### 方式二：自定义命令解析
+
+重定义 `agent_log_parse_cmd()` 实现自定义命令处理：
+
+```c
+// 在你的代码中重新定义此函数（弱符号）
+void agent_log_parse_cmd(char *cmd)
+{
+    if (strcmp(cmd, "dbg") == 0) {
+        agent_log_set_level(AGENT_LOG_LEVEL_DBG);
+        agent_log_inf(AGENT_LOG_MODULE_SYS, "LEVEL_CHG_DBG");
+    } else if (strcmp(cmd, "inf") == 0) {
+        agent_log_set_level(AGENT_LOG_LEVEL_INF);
+        agent_log_inf(AGENT_LOG_MODULE_SYS, "LEVEL_CHG_INF");
+    } else if (strcmp(cmd, "wrn") == 0) {
+        agent_log_set_level(AGENT_LOG_LEVEL_WRN);
+        agent_log_inf(AGENT_LOG_MODULE_SYS, "LEVEL_CHG_WRN");
+    } else if (strcmp(cmd, "err") == 0) {
+        agent_log_set_level(AGENT_LOG_LEVEL_ERR);
+        agent_log_inf(AGENT_LOG_MODULE_SYS, "LEVEL_CHG_ERR");
+    } else if (strcmp(cmd, "fat") == 0) {
+        agent_log_set_level(AGENT_LOG_LEVEL_FAT);
+        agent_log_inf(AGENT_LOG_MODULE_SYS, "LEVEL_CHG_FAT");
+    } else if (strcmp(cmd, "off") == 0) {
+        agent_log_set_level(AGENT_LOG_LEVEL_OFF);
+        agent_log_inf(AGENT_LOG_MODULE_SYS, "LEVEL_CHG_OFF");
+    } else if (strcmp(cmd, "help") == 0) {
+        agent_log_inf(AGENT_LOG_MODULE_SYS, "Commands: dbg/inf/wrn/err/fat/off");
+    }
+    // 添加应用自定义命令...
+}
+```
+
+### 方式三：完全自定义任务
+
+重定义 `agent_log_task()` 实现完全自定义的行为：
+
+```c
+// 在你的代码中重新定义此函数（弱符号）
+void agent_log_task(void *pvParameters)
+{
+    char cmd_buf[128];
+
+    agent_log_init();
+
+    while (1) {
+        if (agent_log_has_data()) {
+            int len = agent_log_read(cmd_buf, sizeof(cmd_buf) - 1);
+            if (len > 0) {
+                cmd_buf[len] = '\0';
+                // 自定义命令处理...
+            }
+        }
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+}
+```
+
+### RTT 命令交互示例
+
+通过 J-Link RTT Viewer 或其他 RTT 客户端发送命令：
+
+| 命令 | 功能 |
+|------|------|
+| `dbg` | 设置日志级别为 DBG（全部输出） |
+| `inf` | 设置日志级别为 INF（信息及以上） |
+| `wrn` | 设置日志级别为 WRN（警告及以上） |
+| `err` | 设置日志级别为 ERR（错误及以上） |
+| `fat` | 设置日志级别为 FAT（仅致命错误） |
+| `off` | 关闭所有日志输出 |
 
 ---
 
@@ -272,8 +375,9 @@ while (1) {
 ## RTT 配置
 
 - **通道号**：`0`（`AGENT_LOG_RTT_CHANNEL` 定义）
-- **缓冲区大小**：上行 1024 字节，下行 16 字节
+- **缓冲区大小**：上行（日志输出）建议 1024 字节，下行（命令输入）建议 16 字节以上
 - 如需修改，在 `agent_log.h` 中修改 `AGENT_LOG_RTT_CHANNEL` 宏
+- **注意**：下行缓冲区需足够存储命令字符串（建议 64~128 字节），若上行（日志输出不完整）首先调整缓冲区为 2048 字节或更大
 
 ---
 
@@ -281,4 +385,6 @@ while (1) {
 
 1. `agent_log_get_tick()` 是 **weak symbol**，必须由应用层实现
 2. 格式化宏内部使用 **128 字节临时缓冲区**，超长字符串会被截断
-3. 日志默认输出全部级别（FATA），正式发布时可改为 `INF` 或 `ERR`
+3. 日志默认输出全部级别（DBG），正式发布时可改为 `INF` 或 `ERR`
+4. RTOS 任务接口（`agent_log_task`、`agent_log_task_create`、`agent_log_parse_cmd`）均为 **weak symbol**，应用层可按需重定义
+5. `agent_log_task()` 默认堆栈大小为 **1024 字**，优先级为 **tskIDLE_PRIORITY + 4**，可根据实际需求调整

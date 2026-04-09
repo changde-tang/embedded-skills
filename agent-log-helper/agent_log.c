@@ -12,6 +12,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stddef.h>
+#include "FreeRTOS.h"
+#include "task.h"
 
 /* -------------------- 模块级别状态 -------------------- */
 /** @brief 当前全局日志级别，低于此级别的日志将被过滤不输出 */
@@ -26,13 +28,13 @@ static uint8_t s_color_enable = 1;
  * 通过 ANSI 转义序列实现不同级别日志的颜色区分，
  * RTT Viewer / J-Link RTT Viewer 均支持 ANSI 颜色。
  */
-static const char *g_level_colors[AGENT_LOG_LEVEL_FAT + 1] = {
+static const char *g_level_colors[AGENT_LOG_LEVEL_DBG + 1] = {
     "",                                   // OFF (0): 不输出
-    RTT_CTRL_TEXT_BRIGHT_RED,             // ERR (1): 亮红
-    RTT_CTRL_TEXT_BRIGHT_YELLOW,          // WRN (2): 亮黄
-    RTT_CTRL_TEXT_BRIGHT_WHITE,          // INF (3): 亮白（默认）
-    RTT_CTRL_TEXT_BRIGHT_CYAN,           // DBG (4): 亮青
-    RTT_CTRL_TEXT_BRIGHT_MAGENTA,        // FAT (5): 亮紫红
+    RTT_CTRL_TEXT_BRIGHT_MAGENTA,        // FAT (1): 亮紫红
+    RTT_CTRL_TEXT_BRIGHT_RED,             // ERR (2): 亮红
+    RTT_CTRL_TEXT_BRIGHT_YELLOW,          // WRN (3): 亮黄
+    RTT_CTRL_TEXT_BRIGHT_WHITE,          // INF (4): 亮白（默认）
+    RTT_CTRL_TEXT_BRIGHT_CYAN,           // DBG (5): 亮青
 };
 
 /**
@@ -325,4 +327,80 @@ int agent_log_read(char *buffer, unsigned int buffer_size)
     }
 
     return rx_len;
+}
+
+/* -------------------- 弱定义命令解析接口 -------------------- */
+/**
+ * @brief 命令解析接口（弱符号实现）
+ *
+ * 默认空实现。应用层可通过重新定义此函数提供命令解析能力。
+ * agent_log_task() 默认会调用此函数处理接收到的命令。
+ *
+ * @param cmd 接收到的命令字符串（已去除尾部换行符）
+ */
+__attribute__((weak)) void agent_log_parse_cmd(char *cmd)
+{
+    (void)cmd;
+    /* 默认空实现，应用层可覆盖以添加自定义命令解析 */
+}
+
+/* -------------------- 弱定义任务函数 -------------------- */
+/**
+ * @brief Agent Log 任务（弱符号实现）
+ *
+ * 默认的 RTT 命令接收任务。功能包括：
+ * - 初始化日志系统
+ * - 循环读取 RTT 下行数据
+ * - 调用 agent_log_parse_cmd() 解析并执行命令
+ *
+ * 应用层可重新定义此函数以自定义行为。
+ *
+ * @param pvParameters 任务参数（未使用）
+ */
+__attribute__((weak)) void agent_log_task(void *pvParameters)
+{
+    char cmd_buf[128];
+    (void)pvParameters;
+
+    agent_log_init();
+    agent_log_set_color_enable(1);
+
+    agent_log_inf(AGENT_LOG_MODULE_SYS, "=== Agent Log Task Started ===");
+
+    /* 打印帮助信息 */
+    agent_log_inf(AGENT_LOG_MODULE_SYS, "=== Available commands ===");
+    agent_log_inf(AGENT_LOG_MODULE_SYS, "help - Show this help");
+    agent_log_inf(AGENT_LOG_MODULE_SYS, "dbg/inf/wrn/err/fat - Log level test");
+    agent_log_inf(AGENT_LOG_MODULE_SYS, "(Application commands via agent_log_parse_cmd)");
+
+    while (1) {
+        if (agent_log_has_data()) {
+            int len = agent_log_read(cmd_buf, sizeof(cmd_buf) - 1);
+            if (len > 0) {
+                cmd_buf[len] = '\0';
+                agent_log_parse_cmd(cmd_buf);
+            }
+        }
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+}
+
+/**
+ * @brief 创建 Agent Log 任务（弱符号实现）
+ *
+ * 默认使用 xTaskCreate() 创建 agent_log_task。
+ * 应用层可重新定义此函数以自定义任务创建方式。
+ *
+ * @return pdTRUE if task was created successfully, pdFALSE otherwise
+ */
+__attribute__((weak)) BaseType_t agent_log_task_create(void)
+{
+    return xTaskCreate(
+        agent_log_task,           /* 任务函数 */
+        "AgentLog",               /* 任务名称 */
+        1024,                     /* 堆栈大小 */
+        NULL,                     /* 参数 */
+        (tskIDLE_PRIORITY + 4),  /* 优先级 */
+        NULL                      /* 任务句柄 */
+    );
 }
