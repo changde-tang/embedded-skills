@@ -125,6 +125,30 @@ agent_log_err_fmt(mod, event, ...);    // 错误级别
 agent_log_fat_fmt(mod, event, ...);    // 致命错误级别
 ```
 
+### 日志宏（带源码位置版本）
+
+输出格式：`[file:line] [tick][level][module][event] message\r\n`
+
+位置信息自动从 `__FILE__`、`__LINE__`、`__FUNCTION__` 提取，便于快速定位日志来源。
+
+**无参版本**：
+```c
+agent_log_dbg_loc(mod, event);    // 调试级别
+agent_log_inf_loc(mod, event);    // 信息级别
+agent_log_wrn_loc(mod, event);    // 警告级别
+agent_log_err_loc(mod, event);    // 错误级别
+agent_log_fat_loc(mod, event);    // 致命错误级别
+```
+
+**有参版本**：
+```c
+agent_log_dbg_loc_fmt(mod, event, ...);    // 调试级别
+agent_log_inf_loc_fmt(mod, event, ...);    // 信息级别
+agent_log_wrn_loc_fmt(mod, event, ...);    // 警告级别
+agent_log_err_loc_fmt(mod, event, ...);    // 错误级别
+agent_log_fat_loc_fmt(mod, event, ...);    // 致命错误级别
+```
+
 ---
 
 ## 模块列表
@@ -179,6 +203,25 @@ agent_log_err_fmt(AGENT_LOG_MODULE_I2C, "TIMEOUT",
     retry_count, max_retries, bus_state_str);
 ```
 
+### 带源码位置的日志
+
+适用于需要精确定位日志来源的场景（如调试时快速找到问题代码行）：
+
+```c
+// 无参版本
+agent_log_err_loc(AGENT_LOG_MODULE_I2C, "TIMEOUT");
+
+// 有参版本
+agent_log_err_loc_fmt(AGENT_LOG_MODULE_I2C, "BUS_ERROR",
+    "addr=0x%02X flags=0x%X", addr, flags);
+```
+
+输出示例：
+```
+[main.c:156] [1234][ERR][I2C   ][TIMEOUT ] addr=0x48 retry=3/3
+[main.c:189] [1256][ERR][I2C   ][BUS_ERROR] addr=0x68 flags=0x02
+```
+
 ---
 
 ## 动态调整日志级别
@@ -209,7 +252,9 @@ while (1) {
 
 ## 日志格式
 
-输出格式：`[tick][level][module][event] 附加数据\r\n`
+**标准格式**：`[tick][level][module][event] 附加数据\r\n`
+
+**带源码位置格式**：`[file:line] [tick][level][module][event] 附加数据\r\n`
 
 示例：
 ```
@@ -217,6 +262,9 @@ while (1) {
 [1235][INF][GPIO  ][LED_INIT] LED1 initialized
 [1240][ERR][I2C   ][TIMEOUT ] addr=0x48 retry=3/3
 [1241][FAT][SYS   ][HALT    ] reason=I2C_FAIL
+
+[main.c:156] [1234][ERR][I2C   ][TIMEOUT ] addr=0x48 retry=3/3
+[i2c.c:89]  [1256][ERR][I2C   ][BUS_ERROR] addr=0x68 flags=0x02
 ```
 
 ---

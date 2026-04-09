@@ -159,6 +159,23 @@ uint8_t agent_log_get_color_enable(void);
 void agent_log_write(agent_log_module_t mod, agent_log_level_t level, const char *event, const char *fmt, ...);
 
 /**
+ * @brief 带源码位置的日志写入函数
+ *
+ * 将日志输出到 RTT，格式：[file:line] [tick][level][module][event] message\r\n
+ *
+ * @param mod   日志所属模块
+ * @param level 日志级别
+ * @param file  源码文件名（建议用 __FILE__ 传入，会自动提取文件名部分）
+ * @param line  源码行号（用 __LINE__ 传入）
+ * @param func  函数名（用 __FUNCTION__ 传入）
+ * @param event 事件标签
+ * @param fmt   格式化字符串（可选），为 NULL 时仅输出标签部分
+ */
+void agent_log_write_loc(agent_log_module_t mod, agent_log_level_t level,
+                         const char *file, int line, const char *func,
+                         const char *event, const char *fmt, ...);
+
+/**
  * @brief 检查RTT下行缓冲区是否有数据可读
  *
  * @return int 返回非0表示有数据可读，0表示无数据
@@ -235,5 +252,50 @@ int agent_log_read(char *buffer, unsigned int buffer_size);
 /** @brief 致命错误级别日志（有参版本，支持格式化） */
 #define agent_log_fat_fmt(mod, event, ...) \
     agent_log_write(mod, AGENT_LOG_LEVEL_FAT, event, ##__VA_ARGS__)
+
+/* ==================== 带源码位置的版本宏 ====================
+ * 输出格式：[file:line] [tick][level][module][event] message\r\n
+ * 位置信息放在最前面，便于快速定位日志来源。
+ * =========================================================== */
+
+/** @brief 信息级别日志（带源码位置，无参版本） */
+#define agent_log_inf_loc(mod, event) \
+    agent_log_write_loc(mod, AGENT_LOG_LEVEL_INF, __FILE__, __LINE__, __FUNCTION__, event, NULL)
+
+/** @brief 调试级别日志（带源码位置，无参版本） */
+#define agent_log_dbg_loc(mod, event) \
+    agent_log_write_loc(mod, AGENT_LOG_LEVEL_DBG, __FILE__, __LINE__, __FUNCTION__, event, NULL)
+
+/** @brief 警告级别日志（带源码位置，无参版本） */
+#define agent_log_wrn_loc(mod, event) \
+    agent_log_write_loc(mod, AGENT_LOG_LEVEL_WRN, __FILE__, __LINE__, __FUNCTION__, event, NULL)
+
+/** @brief 错误级别日志（带源码位置，无参版本） */
+#define agent_log_err_loc(mod, event) \
+    agent_log_write_loc(mod, AGENT_LOG_LEVEL_ERR, __FILE__, __LINE__, __FUNCTION__, event, NULL)
+
+/** @brief 致命错误级别日志（带源码位置，无参版本） */
+#define agent_log_fat_loc(mod, event) \
+    agent_log_write_loc(mod, AGENT_LOG_LEVEL_FAT, __FILE__, __LINE__, __FUNCTION__, event, NULL)
+
+/** @brief 信息级别日志（带源码位置，有参版本） */
+#define agent_log_inf_loc_fmt(mod, event, ...) \
+    agent_log_write_loc(mod, AGENT_LOG_LEVEL_INF, __FILE__, __LINE__, __FUNCTION__, event, ##__VA_ARGS__)
+
+/** @brief 调试级别日志（带源码位置，有参版本） */
+#define agent_log_dbg_loc_fmt(mod, event, ...) \
+    agent_log_write_loc(mod, AGENT_LOG_LEVEL_DBG, __FILE__, __LINE__, __FUNCTION__, event, ##__VA_ARGS__)
+
+/** @brief 警告级别日志（带源码位置，有参版本） */
+#define agent_log_wrn_loc_fmt(mod, event, ...) \
+    agent_log_write_loc(mod, AGENT_LOG_LEVEL_WRN, __FILE__, __LINE__, __FUNCTION__, event, ##__VA_ARGS__)
+
+/** @brief 错误级别日志（带源码位置，有参版本） */
+#define agent_log_err_loc_fmt(mod, event, ...) \
+    agent_log_write_loc(mod, AGENT_LOG_LEVEL_ERR, __FILE__, __LINE__, __FUNCTION__, event, ##__VA_ARGS__)
+
+/** @brief 致命错误级别日志（带源码位置，有参版本） */
+#define agent_log_fat_loc_fmt(mod, event, ...) \
+    agent_log_write_loc(mod, AGENT_LOG_LEVEL_FAT, __FILE__, __LINE__, __FUNCTION__, event, ##__VA_ARGS__)
 
 #endif /* AGENT_LOG_H */

@@ -41,15 +41,21 @@ pip install pylink
 
 **文件**: `agent-log-helper/agent_log.c` + `agent_log.h`
 
-基于 SEGGER RTT 的日志系统，支持多模块分类（ SYS、I2C、SENSOR、UART、ADC、GPIO、TIMER）、日志级别过滤（OFF/ERR/WRN/INF/DBG/FAT）、格式化输出和颜色显示。
+基于 SEGGER RTT 的日志系统，支持多模块分类（ SYS、I2C、SENSOR、UART、ADC、GPIO、TIMER）、日志级别过滤（OFF/ERR/WRN/INF/DBG/FAT）、格式化输出、颜色显示和源码位置追踪。
 
 ```c
 agent_log_init();                              // 初始化
 agent_log_inf(AGENT_LOG_MODULE_SYS, "BOOT");  // 无参日志
 agent_log_err_fmt(AGENT_LOG_MODULE_I2C, "TIMEOUT", "addr=0x48"); // 格式化日志
+agent_log_err_loc(AGENT_LOG_MODULE_I2C, "BUS_ERROR");              // 带源码位置日志
+agent_log_err_loc_fmt(AGENT_LOG_MODULE_I2C, "BUS_ERROR", "flags=0x%X", flags); // 带位置+格式化
 agent_log_set_level(AGENT_LOG_LEVEL_INF);     // 设置级别
 agent_log_set_color_enable(0);                // 关闭颜色（便于日志重定向）
 ```
+
+**日志格式**：
+- 标准：`[tick][level][module][event] message`
+- 带位置：`[file:line] [tick][level][module][event] message`
 
 **注意**：`agent_log_get_tick()` 为 weak symbol，需在应用层实现。
 

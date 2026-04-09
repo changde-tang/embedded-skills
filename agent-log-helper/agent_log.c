@@ -142,7 +142,7 @@ static const char *level_to_str(agent_log_level_t level) {
  * @param ...  可变参数
  */
 static void log_printf(const char *fmt, ...) {
-    char buf[128];
+    char buf[256];
     va_list args;
 
     va_start(args, fmt);
@@ -189,7 +189,7 @@ void agent_log_write(agent_log_module_t mod, agent_log_level_t level, const char
         /* 有参版本：输出标签 + 格式化消息体 */
         log_printf("%s[%lu][%s][%s][%s] ", color_prefix, tick, lvl_str, mod_str, event);
 
-        char body[64];
+        char body[128];
         va_list args;
         va_start(args, fmt);
         vsnprintf(body, sizeof(body), fmt, args);
@@ -202,6 +202,61 @@ void agent_log_write(agent_log_module_t mod, agent_log_level_t level, const char
     }
 
     /* 尾部颜色重置 + 统一换行 */
+    SEGGER_RTT_WriteString(AGENT_LOG_RTT_CHANNEL, RTT_CTRL_RESET "\r\n");
+}
+
+/* -------------------- 源码位置日志 -------------------- */
+/**
+ * @brief 提取路径中的文件名部分
+ *
+ * @param path 完整文件路径
+ * @return 仅文件名部分（不含目录前缀）
+ */
+static const char * basename(const char *path) {
+    const char *p = path + strlen(path);
+    while (p > path && p[-1] != '\\' && p[-1] != '/') {
+        --p;
+    }
+    return p;
+}
+
+/**
+ * @brief 带源码位置的日志写入函数实现
+ *
+ * 输出格式：[file:line] [tick][level][module][event] message\r\n
+ * 位置信息在最前面，便于定位日志来源。
+ */
+void agent_log_write_loc(agent_log_module_t mod, agent_log_level_t level,
+                         const char *file, int line, const char *func,
+                         const char *event, const char *fmt, ...) {
+    /* 级别过滤 */
+    if (level > s_log_level) return;
+    if (mod >= AGENT_LOG_MODULE_MAX) return;
+
+    const char *lvl_str = level_to_str(level);
+    const char *mod_str = g_mod_names[mod];
+    const char *color_prefix = (level != AGENT_LOG_LEVEL_OFF && s_color_enable)
+                                ? g_level_colors[level] : "";
+
+    /* 输出位置标签 [file:line] 前缀 */
+    log_printf("%s[%s:%d] ", color_prefix, basename(file), line);
+
+    if (fmt != NULL) {
+        /* 有参版本：输出标准头部 + 格式化消息体 */
+        log_printf("[%lu][%s][%s][%s] ", agent_log_get_tick(), lvl_str, mod_str, event);
+
+        char body[128];
+        va_list args;
+        va_start(args, fmt);
+        vsnprintf(body, sizeof(body), fmt, args);
+        va_end(args);
+
+        SEGGER_RTT_WriteString(AGENT_LOG_RTT_CHANNEL, body);
+    } else {
+        /* 无参版本：仅输出标准头部 */
+        log_printf("[%lu][%s][%s][%s]", agent_log_get_tick(), lvl_str, mod_str, event);
+    }
+
     SEGGER_RTT_WriteString(AGENT_LOG_RTT_CHANNEL, RTT_CTRL_RESET "\r\n");
 }
 
