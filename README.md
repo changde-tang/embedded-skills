@@ -49,3 +49,23 @@ S1 解析工程 → S2 修改工程 → S3 注入日志 → S4 编译 → S5 烧
 | pylink | J-Link 通信（仅 jlink-download / jlink-rtt 需要） |
 | Keil MDK | v5+（UV4.exe 路径可配置） |
 | J-Link | 驱动最新版 |
+
+## 路径配置说明
+
+> 使用前请先确认以下路径是否需要修改。
+
+### Keil UV4.exe 路径
+
+**文件**：`keil-build/py_keil_build.py`
+**位置**：第 16 行
+
+```python
+keil_path = r"D:\application\keil_v5\UV4\UV4.exe"
+```
+
+- 如果 Keil 安装在其他目录，修改此行即可
+- 或使用 `-k` 参数临时指定：`python py_keil_build.py -p xxx.uvprojx -k "D:\你的路径\UV4.exe"`
+
+### J-Link 驱动
+
+`jlink-download` 和 `jlink-rtt` 使用 `pylink` 库，无需手动配置路径，pylink 会自动查找系统安装的 J-Link 驱动。
