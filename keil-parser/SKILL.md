@@ -1,37 +1,37 @@
 ---
 name: keil-parser
-description: 解析 Keil MDK 工程文件（.uvprojx），提取宏定义、包含路径和源文件列表。触发场景：(1) 需要读取或分析 Keil 工程配置，(2) 查询工程的宏定义（defines）、头文件路径（include paths）、源文件列表，(3) 在编译、烧录等流程前需要了解工程结构，(4) 用户提到 .uvprojx 文件并想知道其内容。即使用户只是说"看看工程配置"或"分析一下这个 Keil 工程"，也应使用此 skill。
+description: Parse Keil MDK project files (.uvprojx), extract macro definitions, include paths, and source file lists. Trigger scenarios: (1) Need to read or analyze Keil project configuration, (2) Query project's macro definitions (defines), header file paths (include paths), source file list, (3) Need to understand project structure before compiling, flashing, etc., (4) User mentions .uvprojx file and wants to know its contents. Even if user just says "check project configuration" or "analyze this Keil project", this skill should be used.
 ---
 
-# Keil 工程配置解析
+# Keil Project Configuration Parsing
 
-调用 `py_keil_parser.py` 解析 `.uvprojx` 工程文件，获取工程的编译配置信息。
+Invoke `py_keil_parser.py` to parse `.uvprojx` project files and get project compilation configuration information.
 
-## 工具脚本
+## Tool Script
 
-**脚本路径**：`py_keil_parser.py`  
-**依赖**：Python 3.x 标准库（无需额外安装）
+**Script Path**: `py_keil_parser.py`
+**Dependencies**: Python 3.x standard library (no additional installation required)
 
-## 使用方法
+## Usage
 
 ```bash
-python py_keil_parser.py <工程文件路径1> [工程文件路径2] ...
+python py_keil_parser.py <project file path 1> [project file path 2] ...
 ```
 
-支持同时解析多个工程文件。
+Supports parsing multiple project files simultaneously.
 
-## 输出结构
+## Output Structure
 
-输出为 JSON 格式，包含以下字段：
+Output is in JSON format, containing the following fields:
 
-| 字段            | 说明                                |
-| --------------- | ----------------------------------- |
-| `target_name`   | 工程目标名称                        |
-| `defines`       | 宏定义字符串，分号分隔              |
-| `include_paths` | 包含路径列表                        |
-| `source_files`  | 源文件列表，每项含 `name` 和 `path` |
+| Field           | Description                                |
+| --------------- | ------------------------------------------ |
+| `target_name`   | Project target name                        |
+| `defines`       | Macro definition string, separated by semicolons |
+| `include_paths` | Include path list                         |
+| `source_files`  | Source file list, each item contains `name` and `path` |
 
-### 示例输出
+### Example Output
 
 ```json
 {
@@ -46,8 +46,8 @@ python py_keil_parser.py <工程文件路径1> [工程文件路径2] ...
 }
 ```
 
-## 典型用途
+## Typical Use Cases
 
-- 在调用编译工具前，先解析工程确认宏定义和路径是否正确
-- 检查工程中包含了哪些源文件
-- 对比两个工程的配置差异
+- Before calling compilation tools, first parse the project to confirm macro definitions and paths are correct
+- Check which source files are included in the project
+- Compare configuration differences between two projects

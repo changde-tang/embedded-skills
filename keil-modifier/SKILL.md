@@ -1,38 +1,38 @@
 ---
 name: keil-uvprojx-modifier
-description: 使用此 skill 来操作 Keil MDK 的 .uvprojx 工程文件。适用场景包括：列出工程中所有 Group 和文件、向指定 Group 添加源文件（.c/.cpp/.s/.asm/.lib/.h 等）、从工程中移除文件、新建或删除 Group、管理 include 路径（添加/删除/列出）。当用户提到 Keil、uvprojx、MDK 工程文件管理，或需要批量修改 Keil 工程结构时，使用此 skill。
+description: Use this skill to operate Keil MDK's .uvprojx project files. Applicable scenarios: list all Groups and files in project, add source files to specified Group (.c/.cpp/.s/.asm/.lib/.h etc.), remove files from project, create or delete Groups, manage include paths (add/remove/list). Use this skill when user mentions Keil, uvprojx, MDK project file management, or needs batch modification of Keil project structure.
 ---
 
-# Keil .uvprojx 工程文件修改工具
+# Keil .uvprojx Project File Modification Tool
 
-## 工具概述
+## Tool Overview
 
-`py_keil_modifier.py` 是一个用于修改 Keil MDK `.uvprojx` XML 工程文件的命令行脚本。它支持列出、添加、删除文件和 Group，管理 include 路径，每次写入前自动备份原文件。
+`py_keil_modifier.py` is a command-line script for modifying Keil MDK `.uvprojx` XML project files. It supports listing, adding, removing files and Groups, managing include paths, and automatically backs up the original file before each write.
 
-## 文件类型映射（FileType）
+## File Type Mapping (FileType)
 
-| 扩展名                 | FileType 值 | 说明                |
-| ---------------------- | ----------- | ------------------- |
-| `.c` / `.cpp`          | `1`         | C/C++ 源文件        |
-| `.s` / `.asm`          | `2`         | 汇编源文件          |
-| `.lib`                 | `3`         | 库文件              |
-| `.txt`                 | `4`         | 文本文件            |
-| `.h` / `.hpp` / `.inc` | `5`         | 头文件              |
-| 其他                   | `1`         | 默认按 C 源文件处理 |
+| Extension              | FileType Value | Description              |
+| ---------------------- | -------------- | ------------------------ |
+| `.c` / `.cpp`          | `1`            | C/C++ source file        |
+| `.s` / `.asm`          | `2`            | Assembly source file     |
+| `.lib`                 | `3`            | Library file             |
+| `.txt`                 | `4`            | Text file                |
+| `.h` / `.hpp` / `.inc` | `5`            | Header file              |
+| Other                  | `1`            | Default to C source file |
 
-## 命令行用法
+## Command Line Usage
 
 ```bash
-python py_keil_modifier.py -p <工程文件.uvprojx> <子命令> [选项]
+python py_keil_modifier.py -p <project file.uvprojx> <subcommand> [options]
 ```
 
-### 列出所有 Group 和文件
+### List All Groups and Files
 
 ```bash
 python py_keil_modifier.py -p MyProject.uvprojx list
 ```
 
-输出示例：
+Example output:
 
 ```
 [Target] MyTarget
@@ -43,9 +43,9 @@ python py_keil_modifier.py -p MyProject.uvprojx list
     - stm32_hal.c  (.\Drivers\stm32_hal.c)
 ```
 
-### 添加文件到 Group
+### Add File to Group
 
-若 Group 不存在则自动创建。
+If Group does not exist, it will be created automatically.
 
 ```bash
 python py_keil_modifier.py -p MyProject.uvprojx add \
@@ -53,76 +53,76 @@ python py_keil_modifier.py -p MyProject.uvprojx add \
     -g Application
 ```
 
-### 从工程中移除文件
+### Remove File from Project
 
-按 `FilePath` 精确匹配，路径需与工程中一致。
+Exact match by `FilePath`, path must be consistent with project.
 
 ```bash
 python py_keil_modifier.py -p MyProject.uvprojx remove \
     -f .\src\old_file.c
 ```
 
-### 新建空 Group
+### Create New Empty Group
 
 ```bash
 python py_keil_modifier.py -p MyProject.uvprojx add-group \
     -g "Middleware"
 ```
 
-### 删除 Group（含其下所有文件记录）
+### Delete Group (including all file records under it)
 
 ```bash
 python py_keil_modifier.py -p MyProject.uvprojx remove-group \
     -g "Middleware"
 ```
 
-### 列出所有 include 路径
+### List All Include Paths
 
 ```bash
 python py_keil_modifier.py -p MyProject.uvprojx list-include-paths
 ```
 
-### 添加 include 路径
+### Add Include Path
 
 ```bash
 python py_keil_modifier.py -p MyProject.uvprojx add-include-path \
     -i ".\inc" ".\drivers\inc"
 ```
 
-### 移除 include 路径
+### Remove Include Path
 
 ```bash
 python py_keil_modifier.py -p MyProject.uvprojx remove-include-path \
     -i ".\old_path"
 ```
 
-## Python API 用法
+## Python API Usage
 
-也可以直接在 Python 脚本中调用各函数：
+Can also call functions directly in Python scripts:
 
 ```python
 import argparse
 from py_keil_modifier import cmd_add, cmd_list, cmd_remove, cmd_add_group, cmd_remove_group
 from py_keil_modifier import cmd_list_include_paths, cmd_add_include_path, cmd_remove_include_path
 
-# 构造 args 命名空间
+# Construct args namespace
 args = argparse.Namespace(
     project="MyProject.uvprojx",
     file=".\\src\\new_file.c",
     group="Application"
 )
 
-# 添加文件
+# Add file
 cmd_add(args)
 
-# 列出工程结构
+# List project structure
 args_list = argparse.Namespace(project="MyProject.uvprojx")
 cmd_list(args_list)
 
-# 列出 include 路径
+# List include paths
 cmd_list_include_paths(args_list)
 
-# 添加 include 路径
+# Add include path
 args_include = argparse.Namespace(
     project="MyProject.uvprojx",
     path=[".\\inc", ".\\drivers\\inc"]
@@ -130,9 +130,9 @@ args_include = argparse.Namespace(
 cmd_add_include_path(args_include)
 ```
 
-## 批量操作示例
+## Batch Operation Examples
 
-批量向工程添加多个文件：
+Batch add multiple files to project:
 
 ```python
 import argparse
@@ -156,7 +156,7 @@ for file_path, group_name in files_to_add:
     cmd_add(args)
 ```
 
-批量添加 include 路径：
+Batch add include paths:
 
 ```python
 import argparse
@@ -166,7 +166,7 @@ PROJECT = "MyProject.uvprojx"
 
 include_paths = [
     ".\\inc",
-    ".\\drivers\\inc", 
+    ".\\drivers\\inc",
     ".\\middleware\\inc"
 ]
 
@@ -177,18 +177,18 @@ args = argparse.Namespace(
 cmd_add_include_path(args)
 ```
 
-## 行为说明
+## Behavior Notes
 
-- **自动备份**：每次写入前将原文件复制为 `<文件名>.bak`，例如 `MyProject.uvprojx.bak`。
-- **自动创建 Group**：执行 `add` 时若目标 Group 不存在，自动新建。
-- **去重检查**：添加文件时若 `FilePath` 已存在于该 Group，跳过并输出 `[Skip]`；添加 include 路径时也会检查重复。
-- **多 Target 支持**：操作会作用于工程中的**所有** Target，适合单 Target 工程；多 Target 工程请注意此行为。
-- **XML 格式化**：写回后 XML 会被重新缩进，保持人类可读。
-- **编码**：输出文件使用 `UTF-8` 编码并包含 XML 声明。
+- **Auto backup**: Each write copies the original file to `<filename .bak>`, e.g., `MyProject.uvprojx.bak`.
+- **Auto create Group**: When executing `add`, if target Group does not exist, it will be newly created automatically.
+- **Deduplication check**: When adding a file, if `FilePath` already exists in that Group, it will be skipped with `[Skip]` output; duplicate check also applies when adding include paths.
+- **Multi-Target support**: Operations apply to **all** Targets in the project, suitable for single Target projects; note this behavior for multi-Target projects.
+- **XML formatting**: After write-back, XML will be re-indented to maintain human readability.
+- **Encoding**: Output file uses `UTF-8` encoding and includes XML declaration.
 
-## 注意事项
+## Notes
 
-1. **文件路径格式**：建议使用与工程一致的相对路径（如 `.\\src\\main.c`），`remove` 命令的 `-f` 参数必须与 XML 中 `<FilePath>` 的值完全一致。
-2. **多 Target 工程**：脚本会遍历所有 `<Target>` 节点，如需只修改特定 Target，需要额外扩展脚本。
-3. **不修改磁盘文件**：此工具只修改 `.uvprojx` 工程文件的 XML 结构，不会在磁盘上创建、移动或删除实际源文件。
-4. **依赖库**：仅使用 Python 标准库（`xml.etree.ElementTree`、`argparse`、`shutil`、`os`），无需额外安装。
+1. **File path format**: It is recommended to use relative paths consistent with the project (e.g., `.\\src\\main.c`). The `-f` parameter for `remove` command must exactly match the value of `<FilePath>` in XML.
+2. **Multi-Target projects**: The script iterates through all `<Target>` nodes. If you need to modify only a specific Target, the script needs additional extension.
+3. **Does not modify disk files**: This tool only modifies the `.uvprojx` project file's XML structure. It will not create, move, or delete actual source files on disk.
+4. **Dependencies**: Uses only Python standard library (`xml.etree.ElementTree`, `argparse`, `shutil`, `os`), no additional installation required.

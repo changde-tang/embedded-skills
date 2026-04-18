@@ -1,84 +1,84 @@
 ---
 name: jlink-rtt
-description: 通过 J-Link 调试器实时读取 SEGGER RTT 日志输出，支持自动扫描 RTT 控制块地址，适用于 GD32/STM32 等 ARM Cortex-M 单片机的调试。触发场景：(1) 读取单片机的 RTT 调试日志，(2) 用户提到"RTT"、"查看日志"、"读取串口"（RTT 场景）、"实时日志"，(3) 调试单片机程序时需要查看输出信息，(4) 使用 SEGGER RTT Viewer 类似功能。即使用户只说"看看单片机打印了什么"或"读一下 RTT"，也应使用此 skill。
+description: Read SEGGER RTT log output in real-time via J-Link debugger, supporting auto-scan of RTT control block addresses, applicable for debugging GD32/STM32 and other ARM Cortex-M microcontrollers. Trigger scenarios: (1) Read RTT debug logs from microcontroller, (2) User mentions "RTT", "view logs", "read serial" (RTT scenario), "real-time logs", (3) Need to view output information when debugging microcontroller programs, (4) Using features similar to SEGGER RTT Viewer. Even if user just says "see what the microcontroller prints" or "read RTT", this skill should be used.
 ---
 
-# J-Link RTT 日志读取
+# J-Link RTT Log Reading
 
-调用 `py_jlink_rtt.py` 通过 J-Link 连接目标芯片，实时读取 SEGGER RTT 终端输出。支持自动扫描内存定位 RTT 控制块，也支持手动指定地址。
+Invoke `py_jlink_rtt.py` to connect to target chip via J-Link and read SEGGER RTT terminal output in real-time. Supports auto-scan to locate RTT control block in memory, and also supports manually specifying the address.
 
-## 工具脚本
+## Tool Script
 
-**脚本路径**：`py_jlink_rtt.py`
-**依赖**：Python 3.x + `pylink` 库
+**Script Path**: `py_jlink_rtt.py`
+**Dependencies**: Python 3.x + `pylink` library
 
 ```bash
 pip install pylink
 ```
 
-## 使用方法
+## Usage
 
 ```bash
-# 默认参数（GD32F303RC，自动扫描 RTT 地址，超时 60 秒）
+# Default parameters (GD32F303RC, auto-scan RTT address, 60 second timeout)
 python py_jlink_rtt.py
 
-# 指定芯片型号
+# Specify chip model
 python py_jlink_rtt.py -d STM32F103C8
 
-# 手动指定 RTT 控制块地址（跳过自动扫描，更快启动）
+# Manually specify RTT control block address (skip auto-scan, faster startup)
 python py_jlink_rtt.py -a 0x20000B90
 
-# 读取通道 1，超时 30 秒，开启调试输出
+# Read channel 1, 30 second timeout, enable debug output
 python py_jlink_rtt.py -c 1 -t 30 --debug
 
-# 监听日志的同时定时发送数据（支持多次 --send）
+# Monitor logs while sending data at regular intervals (supports multiple --send)
 python py_jlink_rtt.py -d GD32F303RC -t 10 --send 3:hello --send 6:test
 ```
 
-## 参数说明
+## Parameter Description
 
-| 参数         | 简写 | 说明                       | 默认值       |
-| ------------ | ---- | -------------------------- | ------------ |
-| `--device`   | `-d` | 目标芯片型号               | `GD32F303RC` |
-| `--channel`  | `-c` | RTT 通道号                 | `0`          |
-| `--timeout`  | `-t` | 运行时间（秒）             | `60`         |
-| `--rtt-addr` | `-a` | RTT 控制块地址（十六进制） | 自动扫描     |
-| `--send`     | `-s` | 定时发送数据（格式见下方） | 不发送       |
-| `--debug`    | -    | 打印 rtt_read 返回类型     | 关闭         |
+| Parameter     | Short | Description                        | Default       |
+| ------------- | ----- | ---------------------------------- | ------------- |
+| `--device`    | `-d`  | Target chip model                  | `GD32F303RC` |
+| `--channel`   | `-c`  | RTT channel number                 | `0`          |
+| `--timeout`   | `-t`  | Running time (seconds)             | `60`         |
+| `--rtt-addr`  | `-a`  | RTT control block address (hex)    | Auto-scan    |
+| `--send`      | `-s`  | Send data at regular intervals (format see below) | Not send |
+| `--debug`     | -     | Print rtt_read return type         | Off          |
 
-## --send 参数格式
+## --send Parameter Format
 
 ```
---send 秒数:内容
+--send seconds:content
 ```
 
-- **秒数**：触发发送的时间点（相对于开始连接的时间）
-- **内容**：要发送的字符串数据
-- 可重复使用多个 `--send` 实现多次发送
+- **seconds**: Time point to trigger sending (relative to when connection starts)
+- **content**: String data to send
+- Can use multiple `--send` for multiple sends
 
-**示例**：
+**Example**:
 
 ```bash
-# 第 3 秒发送 "hello"，第 7 秒发送 "start_test"
+# Send "hello" at 3 seconds, send "start_test" at 7 seconds
 --send 3:hello --send 7:start_test
 ```
 
-## RTT 控制块地址
+## RTT Control Block Address
 
-- **自动扫描**：脚本采用两层策略：优先调用 J-Link SDK 内置的 `rtt_start(0)` 自动定位控制块（更可靠）；若 SDK 扫描失败，则回退到 Python 手动扫描 RAM 区域（`0x20000000` 起，128KB 范围），查找 `"SEGGER RTT"` 标识符。首次使用推荐此方式。
-- **手动指定**：如果已知地址（可从 J-Link RTT Viewer 或 map 文件中获取），用 `-a` 参数指定，启动更快。
+- **Auto-scan**: The script uses a two-layer strategy: prioritize using J-Link SDK built-in `rtt_start(0)` to automatically locate the control block (more reliable); if SDK scan fails, fall back to Python manually scanning RAM area (starting from `0x20000000`, 128KB range), searching for `"SEGGER RTT"` identifier. Recommended for first-time use.
+- **Manual specification**: If the address is known (can be obtained from J-Link RTT Viewer or map file), use `-a` parameter to specify for faster startup.
 
-> 注意：每次重新编译固件后，RTT 控制块地址可能改变，建议重新自动扫描或查阅新 map 文件。
+> Note: After each firmware recompilation, the RTT control block address may change. It is recommended to re-auto-scan or check the new map file.
 
-## 工作原理
+## Working Principle
 
-1. 连接 J-Link，以 SWD 接口连接目标芯片
-2. 定位 RTT 控制块：优先使用 J-Link SDK 内置自动扫描，失败则回退 Python 手动扫描
-3. 启动 RTT 会话，周期性调用 `rtt_read()` 读取缓冲区
-4. 根据 `--send` 计划定时调用 `rtt_write()` 发送数据
-5. 实时将 UTF-8 解码后的内容输出到终端
-6. 按 `Ctrl+C` 或达到超时后断开连接
+1. Connect J-Link to target chip via SWD interface
+2. Locate RTT control block: prioritize J-Link SDK built-in auto-scan, fall back to Python manual scan on failure
+3. Start RTT session, periodically call `rtt_read()` to read buffer
+4. According to `--send` schedule, call `rtt_write()` to send data at regular intervals
+5. Real-time output UTF-8 decoded content to terminal
+6. Disconnect on `Ctrl+C` or when timeout is reached
 
-## 性能调优
+## Performance Tuning
 
-脚本内置批量读取优化（单次最大 4096 字节，10ms 刷新间隔），适合高频日志场景。如有乱码，检查固件端 RTT 日志是否使用 UTF-8 编码。
+The script has built-in batch read optimization (max 4096 bytes per read, 10ms refresh interval), suitable for high-frequency log scenarios. If garbled text appears, check if firmware RTT log uses UTF-8 encoding.

@@ -1,270 +1,270 @@
 ---
 name: arm-tools-chain
-description: ARM MCU 开发全流程总控编排技能。当用户进行任何 ARM/Keil/MDK/STM32/GD32 相关开发任务时，必须首先读取此文件以确定执行顺序和策略。 适用场景：使用arm工具链、开发新功能、添加日志、编译烧录、调试查看日志、全流程开发等。 关键词：Keil、MDK、ARM、STM32、GD32、uvprojx、编译、烧录、flash、RTT、日志、开发。
+description: ARM MCU development full-process orchestration skill. Must read this file first when performing any ARM/Keil/MDK/STM32/GD32 related development tasks to determine execution order and strategy. Applicable scenarios: using ARM toolchain, developing new features, adding logs, compiling and flashing, debugging and viewing logs, full-process development, etc. Keywords: Keil, MDK, ARM, STM32, GD32, uvprojx, compile, flash, RTT, log, development.
 ---
 
-# ARM MCU 开发 · 编排总控
+# ARM MCU Development · Orchestration Controller
 
-## 一、子技能索引
+## 1. Sub-Skill Index
 
-| ID   | Skill            | 核心职责                          |
-| ---- | ---------------- | --------------------------------- |
-| S1   | keil-parser      | 解析 .uvprojx，读取工程配置       |
-| S2   | keil-modifier    | 修改工程结构（文件、Group、路径） |
-| S3   | agent-log-helper | 向工程注入 agent_log 日志系统     |
-| S4   | keil-build       | 命令行编译，解析错误/警告         |
-| S5   | jlink-download   | 通过 J-Link 烧录固件              |
-| S6   | jlink-rtt        | 实时读取 RTT 日志                 |
+| ID   | Skill            | Core Responsibility                  |
+| ---- | ---------------- | ------------------------------------- |
+| S1   | keil-parser      | Parse .uvprojx, read project config  |
+| S2   | keil-modifier    | Modify project structure (files, Groups, paths) |
+| S3   | agent-log-helper | Inject agent_log logging system into project |
+| S4   | keil-build       | Command-line compile, parse errors/warnings |
+| S5   | jlink-download   | Flash firmware via J-Link            |
+| S6   | jlink-rtt        | Real-time RTT log reading             |
 
-> **执行前必做**：读取对应 SKILL.md → 执行 → 检查结果 → 继续或回退
+> **Required before execution**: Read corresponding SKILL.md → Execute → Check result → Continue or rollback
 
-------
+---
 
-## 二、任务类型识别
+## 2. Task Type Recognition
 
-在开始任何任务前，先判断用户意图属于哪种场景，选择对应流程：
+Before starting any task, determine which scenario the user's intent falls into, and select the corresponding flow:
 
-| 用户意图关键词                 | 执行流程                 |
-| ------------------------------ | ------------------------ |
-| 开发新功能、添加代码、修改工程 | → Flow A（完整开发流程） |
-| 添加日志、agent_log、查日志    | → Flow B（日志集成流程） |
-| 只编译、build、检查错误        | → Flow C（单独编译）     |
-| 烧录、flash、下载固件          | → Flow D（编译+烧录）    |
-| 查看日志、RTT、调试输出        | → Flow E（烧录+调试）    |
-| 我不确定 / 帮我全部做好        | → Flow A（完整流程）     |
+| User Intent Keywords              | Execution Flow             |
+| -------------------------------- | -------------------------- |
+| Develop new feature, add code, modify project | → Flow A (full development flow) |
+| Add logs, agent_log, check logs | → Flow B (log integration flow) |
+| Compile only, build, check errors | → Flow C (standalone compile) |
+| Flash, download firmware         | → Flow D (compile + flash) |
+| View logs, RTT, debug output     | → Flow E (flash + debug) |
+| I'm not sure / do everything for me | → Flow A (full flow) |
 
-------
+---
 
-## 三、主执行流程
+## 3. Main Execution Flows
 
-### Flow A · 完整开发流程（推荐默认）
+### Flow A · Full Development Flow (Recommended Default)
 
 ```
-S1(解析) → S2(修改) → S3(注入日志) → S4(编译) → S5(烧录) → S6(查看日志)
+S1(parse) → S2(modify) → S3(inject log) → S4(build) → S5(flash) → S6(view log)
 ```
 
-适用于：从零集成、功能开发、不确定从哪里开始时。
+Applicable for: Starting from scratch, feature development, unsure where to start.
 
-**执行步骤：**
+**Execution Steps:**
 
 ```
 STEP 1 [S1 keil-parser]
-  目标：了解当前工程结构
-  读取：keil-parser/SKILL.md
-  执行：解析 .uvprojx，输出 Groups、源文件、include路径、宏定义
-  成功：成功提取工程配置信息
-  失败：→ 见「错误处理 E1」
+  Goal: Understand current project structure
+  Read: keil-parser/SKILL.md
+  Execute: Parse .uvprojx, output Groups, source files, include paths, defines
+  Success: Successfully extracted project configuration
+  Failure: → See "Error Handling E1"
 
 STEP 2 [S2 keil-modifier]
-  目标：按需修改工程结构
-  前提：已知 S1 输出的工程结构
-  读取：keil-modifier/SKILL.md
-  执行：添加/删除文件、Group、include路径
-  成功：.uvprojx 修改后可被 Keil 正常打开
-  跳过条件：用户未要求修改工程结构时，跳过此步
+  Goal: Modify project structure as needed
+  Prerequisite: Known project structure from S1 output
+  Read: keil-modifier/SKILL.md
+  Execute: Add/remove files, Groups, include paths
+  Success: .uvprojx can be opened normally in Keil after modification
+  Skip condition: Skip if user did not require modifying project structure
 
 STEP 3 [S3 agent-log-helper]
-  目标：注入结构化日志系统
-  前提：S2 完成（或跳过）
-  读取：agent-log-helper/SKILL.md
-  执行：添加日志宏、初始化函数、tick 处理
-  成功：日志相关文件已添加到工程，代码可编译
-  跳过条件：用户明确不需要日志时，跳过此步
+  Goal: Inject structured logging system
+  Prerequisite: S2 complete (or skipped)
+  Read: agent-log-helper/SKILL.md
+  Execute: Add log macros, initialization function, tick handling
+  Success: Log-related files added to project, code can compile
+  Skip condition: Skip if user explicitly does not need logs
 
 STEP 4 [S4 keil-build]
-  目标：编译工程，确保无错误
-  读取：keil-build/SKILL.md
-  执行：增量编译，解析输出
-  成功：编译返回码为 0，无 Error
-  警告：Warning 存在时告知用户，但不阻断流程
-  失败：→ 见「错误处理 E2」
+  Goal: Compile project, ensure no errors
+  Read: keil-build/SKILL.md
+  Execute: Incremental build, parse output
+  Success: Build return code is 0, no Errors
+  Warning: Warnings exist, inform user but do not block flow
+  Failure: → See "Error Handling E2"
 
 STEP 5 [S5 jlink-download]
-  目标：烧录编译产物到目标芯片
-  前提：S4 编译成功，.bin/.hex 文件存在
-  读取：jlink-download/SKILL.md
-  执行：通过 J-Link 烧录固件
-  成功：烧录完成，芯片响应
-  失败：→ 见「错误处理 E3」
+  Goal: Flash compiled output to target chip
+  Prerequisite: S4 build succeeded, .bin/.hex file exists
+  Read: jlink-download/SKILL.md
+  Execute: Flash firmware via J-Link
+  Success: Flash complete, chip responds
+  Failure: → See "Error Handling E3"
 
 STEP 6 [S6 jlink-rtt]
-  目标：实时查看 RTT 日志输出
-  前提：S5 烧录成功
-  读取：jlink-rtt/SKILL.md
-  执行：自动扫描 RTT 控制块，读取日志
-  成功：日志正常输出
-  失败：→ 见「错误处理 E4」
+  Goal: View real-time RTT log output
+  Prerequisite: S5 flash succeeded
+  Read: jlink-rtt/SKILL.md
+  Execute: Auto-scan RTT control block, read logs
+  Success: Logs output normally
+  Failure: → See "Error Handling E4"
 ```
 
-------
+---
 
-### Flow B · 日志集成流程
-
-```
-S1(解析) → S3(注入日志) → S4(编译) → S5(烧录) → S6(查看日志)
-```
-
-适用于：已有工程，只需添加 agent_log 日志系统。跳过 S2（不修改工程结构）。
-
-------
-
-### Flow C · 单独编译
+### Flow B · Log Integration Flow
 
 ```
-S4(编译)
+S1(parse) → S3(inject log) → S4(build) → S5(flash) → S6(view log)
 ```
 
-适用于：代码已改好，只需检查是否有编译错误。
- 失败时：→ 根据错误内容决定回到 S1/S2/S3 修复，再重新编译。
+Applicable for: Project already exists, only need to add agent_log logging system. Skips S2 (no project structure modification).
 
-------
+---
 
-### Flow D · 编译 + 烧录
-
-```
-S4(编译) → S5(烧录)
-```
-
-适用于：代码已就绪，执行编译然后直接烧录。
-
-------
-
-### Flow E · 烧录 + 调试
+### Flow C · Standalone Compile
 
 ```
-S5(烧录) → S6(查看日志)
+S4(build)
 ```
 
-适用于：固件已编译好，直接烧录并查看 RTT 日志。
+Applicable for: Code already modified, just need to check for build errors.
+Failure: → Based on error content, decide to return to S1/S2/S3 for fixes, then rebuild.
 
-------
+---
 
-## 四、错误处理与回退策略
-
-### E1 · keil-parser 失败（无法解析工程）
-
-**可能原因**：.uvprojx 路径错误、文件损坏、格式不兼容
- **回退策略**：
+### Flow D · Compile + Flash
 
 ```
-1. 请用户确认 .uvprojx 文件路径
-2. 检查文件是否存在且可读
-3. 修复后重新执行 S1
-4. 若仍失败 → 停止，向用户报告具体错误
+S4(build) → S5(flash)
 ```
 
-------
+Applicable for: Code is ready, execute compile then flash directly.
 
-### E2 · keil-build 编译失败
+---
 
-**根据错误类型分流：**
-
-```
-情况 A：语法错误 / 函数未定义 / 头文件缺失
-  回退：→ S3(修复代码) 或 S2(补充include路径) → 重新 S4
-  最多重试：2次
-
-情况 B：链接错误（符号重复定义、内存溢出）
-  回退：→ S2(检查文件是否重复添加) → 重新 S4
-  最多重试：1次
-
-情况 C：工具链错误（UV4路径问题）
-  回退：→ 停止，提示用户检查 Keil 安装路径
-```
-
-------
-
-### E3 · jlink-download 烧录失败
-
-**根据错误类型分流：**
+### Flow E · Flash + Debug
 
 ```
-情况 A：J-Link 未连接 / 识别不到设备
-  回退：→ 提示用户检查 USB 连接和目标板供电 → 重试 S5
-  最多重试：2次
-
-情况 B：固件文件不存在
-  回退：→ 重新执行 S4 编译 → 再执行 S5
-  最多重试：1次
-
-情况 C：芯片型号不匹配
-  回退：→ 请用户确认芯片型号 → 停止等待用户输入
+S5(flash) → S6(view log)
 ```
 
-------
+Applicable for: Firmware already compiled, flash directly and view RTT logs.
 
-### E4 · jlink-rtt 读取失败
+---
 
-**根据错误类型分流：**
+## 4. Error Handling and Rollback Strategy
+
+### E1 · keil-parser Failure (Cannot Parse Project)
+
+**Possible Causes**: .uvprojx path error, file corrupted, format incompatible
+**Rollback Strategy**:
 
 ```
-情况 A：RTT 控制块扫描失败
-  回退：→ 提示检查 agent_log 初始化是否在代码中调用 → 重试 S6
-  最多重试：1次
-
-情况 B：J-Link 断开
-  回退：→ 检查连接 → 重新执行 S5(重新烧录) → 再执行 S6
-
-情况 C：无任何输出（程序可能卡死）
-  回退：→ 建议用户检查 main() 中 tick 函数是否被调用
-  → 修复后回到 Flow D 重新烧录
+1. Confirm .uvprojx file path with user
+2. Check if file exists and is readable
+3. Fix and re-execute S1
+4. If still failing → Stop, report specific error to user
 ```
 
-------
+---
 
-## 五、执行日志规范
+### E2 · keil-build Build Failure
 
-每步必须输出以下格式，让执行过程透明可追踪：
+**Distribute based on error type:**
+
+```
+Case A: Syntax error / function undefined / header file missing
+  Rollback: → S3(fix code) or S2(supplement include path) → Rebuild S4
+  Max retries: 2
+
+Case B: Link error (symbol redefinition, memory overflow)
+  Rollback: → S2(check for duplicate file additions) → Rebuild S4
+  Max retries: 1
+
+Case C: Toolchain error (UV4 path issue)
+  Rollback: → Stop, prompt user to check Keil installation path
+```
+
+---
+
+### E3 · jlink-download Flash Failure
+
+**Distribute based on error type:**
+
+```
+Case A: J-Link not connected / device not recognized
+  Rollback: → Prompt user to check USB connection and target board power → Retry S5
+  Max retries: 2
+
+Case B: Firmware file does not exist
+  Rollback: → Re-execute S4 build → Then execute S5
+  Max retries: 1
+
+Case C: Chip model mismatch
+  Rollback: → Confirm chip model with user → Stop and wait for user input
+```
+
+---
+
+### E4 · jlink-rtt Read Failure
+
+**Distribute based on error type:**
+
+```
+Case A: RTT control block scan failed
+  Rollback: → Prompt to check if agent_log initialization is called in code → Retry S6
+  Max retries: 1
+
+Case B: J-Link disconnected
+  Rollback: → Check connection → Re-execute S5(reflash) → Then execute S6
+
+Case C: No output (program may be stuck)
+  Rollback: → Suggest user to check if tick function is called in main()
+  → Fix, then return to Flow D to reflash
+```
+
+---
+
+## 5. Execution Log Specification
+
+Each step must output in the following format to make execution transparent and traceable:
 
 ```
 ╔══════════════════════════════════════╗
-║  [STEP S1] keil-parser · 解析工程    ║
+║  [STEP S1] keil-parser · Parse Project ║
 ╚══════════════════════════════════════╝
-→ 正在读取：keil-parser/SKILL.md
-→ 执行中...
-✅ 成功：发现 3 个 Group，12 个源文件，5 条 include 路径
+→ Reading: keil-parser/SKILL.md
+→ Executing...
+✅ Success: Found 3 Groups, 12 source files, 5 include paths
 
 ╔══════════════════════════════════════╗
-║  [STEP S4] keil-build · 编译工程     ║
+║  [STEP S4] keil-build · Build Project  ║
 ╚══════════════════════════════════════╝
-→ 正在读取：keil-build/SKILL.md
-→ 执行增量编译...
-❌ 失败：error C3861: 'agent_log_init' 未声明
-→ 触发回退策略 E2-情况A：返回 S3 修复代码
+→ Reading: keil-build/SKILL.md
+→ Executing incremental build...
+❌ Failure: error C3861: 'agent_log_init' undeclared
+→ Triggering rollback strategy E2-CaseA: returning to S3 to fix code
 ```
 
-------
+---
 
-## 六、通用规则
+## 6. General Rules
 
-1. **每步执行前**，必须先读取对应的 SKILL.md，不可凭记忆执行
-2. **跳过步骤时**，明确告知用户"跳过 S2，原因：用户未要求修改工程结构"
-3. **最大回退次数**：同一步骤最多重试 **2次**，超过则停止并向用户报告
-4. **不要无限循环**：回退总次数不超过 **3次**，超过必须请求用户介入
-5. **遇到不确定情况**，优先询问用户，不要猜测芯片型号、路径等关键信息
-6. **每个Flow结束后**，输出完整的执行摘要
+1. **Before each step executes**, must read the corresponding SKILL.md first, do not execute from memory
+2. **When skipping a step**, clearly inform the user "Skipping S2, reason: user did not require modifying project structure"
+3. **Maximum rollback count**: Each step retries at most **2 times**, exceeding stops and reports to user
+4. **Do not loop infinitely**: Total rollback count does not exceed **3 times**, exceeding must request user intervention
+5. **When encountering uncertain situations**, prioritize asking the user, do not guess chip model, path, etc.
+6. **After each Flow completes**, output a complete execution summary
 
-------
+---
 
-## 七、执行摘要模板
+## 7. Execution Summary Template
 
 ```
 ══════════════════════════════════
-  ARM MCU 开发流程 · 执行摘要
+  ARM MCU Development Flow · Execution Summary
 ══════════════════════════════════
-执行流程：Flow A（完整开发流程）
-芯片型号：GD32F303CCT6
-工程路径：/path/to/project.uvprojx
+Execution Flow: Flow A (Full Development Flow)
+Chip Model: GD32F303CCT6
+Project Path: /path/to/project.uvprojx
 
-步骤结果：
-  ✅ S1 keil-parser    · 解析完成（3 Groups，12 文件）
-  ✅ S2 keil-modifier  · 添加了 agent_log.c 到 Middleware Group
-  ✅ S3 agent-log      · 日志系统注入完成
-  ❌ S4 keil-build     · 编译失败 → 触发 E2-A → 修复后重试
-  ✅ S4 keil-build     · 第2次编译成功（0 Error，2 Warning）
-  ✅ S5 jlink-download · 烧录成功
-  ✅ S6 jlink-rtt      · 日志输出正常
+Step Results:
+  ✅ S1 keil-parser    · Parse complete (3 Groups, 12 files)
+  ✅ S2 keil-modifier  · Added agent_log.c to Middleware Group
+  ✅ S3 agent-log      · Logging system injection complete
+  ❌ S4 keil-build     · Build failed → Triggered E2-A → Retry after fix
+  ✅ S4 keil-build     · 2nd build succeeded (0 Error, 2 Warning)
+  ✅ S5 jlink-download · Flash succeeded
+  ✅ S6 jlink-rtt      · Log output normal
 
-总计：6步完成，1次回退，耗时约 3 分钟
+Total: 6 steps completed, 1 rollback, approx. 3 minutes
 ══════════════════════════════════
 ```

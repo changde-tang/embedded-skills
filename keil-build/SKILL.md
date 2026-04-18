@@ -1,59 +1,59 @@
 ---
 name: keil-build
-description: 通过命令行调用 Keil UV4 编译器编译 Keil MDK 工程（.uvprojx），支持增量编译和全量编译，并解析编译结果。触发场景：(1) 编译 Keil/MDK ARM 工程，(2) 用户提到"build"、"编译"、"构建"工程，(3) 需要检查工程是否有编译错误或警告，(4) 在烧录固件前需要先编译工程。即使用户只说"帮我编译一下"或"build 这个工程"，也应使用此 skill。
+description: Compile Keil MDK projects (.uvprojx) via command line using Keil UV4 compiler, supporting incremental build and full rebuild, and parse build results. Trigger scenarios: (1) Compile Keil/MDK ARM project, (2) User mentions "build", "compile", "construct" project, (3) Need to check if project has build errors or warnings, (4) Need to compile before flashing firmware. Even if user just says "compile it for me" or "build this project", this skill should be used.
 ---
 
-# Keil 工程编译
+# Keil Project Compilation
 
-调用 `py_keil_build.py` 通过 Keil UV4 命令行接口编译工程，并返回结构化的编译结果。
+Invoke `py_keil_build.py` to compile projects via Keil UV4 command-line interface, and return structured build results.
 
-## 工具脚本
+## Tool Script
 
-**脚本路径**：`py_keil_build.py`  
-**依赖**：Python 3.x 标准库 + 已安装 Keil MDK（含 UV4.exe）
+**Script Path**: `py_keil_build.py`
+**Dependencies**: Python 3.x standard library + Installed Keil MDK (with UV4.exe)
 
-## 使用方法
+## Usage
 
 ```bash
-# 增量编译（默认）
-python py_keil_build.py -p <工程.uvprojx>
+# Incremental build (default)
+python py_keil_build.py -p <project.uvprojx>
 
-# 全量编译（clean rebuild）
-python py_keil_build.py -p <工程.uvprojx> -r
+# Full rebuild (clean rebuild)
+python py_keil_build.py -p <project.uvprojx> -r
 
-# 指定 UV4.exe 路径
-python py_keil_build.py -p <工程.uvprojx> -k "D:\keil\UV4\UV4.exe"
+# Specify UV4.exe path
+python py_keil_build.py -p <project.uvprojx> -k "D:\keil\UV4\UV4.exe"
 ```
 
-## 参数说明
+## Parameter Description
 
-| 参数        | 简写 | 说明                | 默认值                               |
-| ----------- | ---- | ------------------- | ------------------------------------ |
-| `--project` | `-p` | `.uvprojx` 文件路径 | **必填**                             |
-| `--keil`    | `-k` | UV4.exe 路径        | `D:\application\keil_v5\UV4\UV4.exe` |
-| `--rebuild` | `-r` | 全量编译            | 增量编译                             |
+| Parameter      | Short | Description                | Default                               |
+| -------------- | ----- | -------------------------- | ------------------------------------- |
+| `--project`    | `-p`  | `.uvprojx` file path      | **Required**                          |
+| `--keil`       | `-k`  | UV4.exe path               | `D:\application\keil_v5\UV4\UV4.exe` |
+| `--rebuild`    | `-r`  | Full rebuild              | Incremental build                     |
 
-## 输出结构
+## Output Structure
 
-返回 JSON 格式结果：
+Returns JSON format result:
 
 ```json
 {
-  "status": "success",       // "success" 或 "failed" 或 "error"
-  "errors_count": 0,         // 编译错误数量
-  "warnings_count": 3,       // 编译警告数量
-  "full_log": "..."          // 编译日志（最后 2000 字符）
+  "status": "success",       // "success" or "failed" or "error"
+  "errors_count": 0,         // Number of build errors
+  "warnings_count": 3,       // Number of build warnings
+  "full_log": "..."          // Build log (last 2000 characters)
 }
 ```
 
-## 注意事项
+## Notes
 
-- Keil 默认安装路径：`D:\application\keil_v5\UV4\UV4.exe`，如不同请用 `-k` 指定
-- 编译日志同时写入工程目录下的 `build_agent_log.txt`
-- `errors_count` 为 -1 表示日志解析失败（编译器未能正常输出汇总行）
+- Keil default installation path: `D:\application\keil_v5\UV4\UV4.exe`, if different please specify with `-k`
+- Build log is also written to `build_agent_log.txt` in the project directory
+- `errors_count` of -1 indicates log parsing failed (compiler did not output summary line normally)
 
-## 典型工作流
+## Typical Workflow
 
-1. 先用 `keil-parser` 确认工程配置无误
-2. 调用此工具编译，检查 `errors_count` 是否为 0
-3. 编译成功后，使用 `jlink-download` 烧录固件
+1. First use `keil-parser` to confirm project configuration is correct
+2. Call this tool to build, check if `errors_count` is 0
+3. After successful build, use `jlink-download` to flash firmware
