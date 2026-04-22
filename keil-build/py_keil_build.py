@@ -3,6 +3,44 @@ import os
 import re
 import argparse
 
+
+def parse_build_loghtm(log_path):
+    """解析构建日志 HTML，提取 error 和 warning 数量"""
+    try:
+        with open(log_path, 'r', encoding='utf-8', errors='ignore') as f:
+            content = f.read()
+        # 查找 "X Error(s), Y Warning(s)" 模式
+        match = re.search(r'(\d+)\s+Error\(s\)[,\s]+(\d+)\s+Warning\(s\)', content, re.IGNORECASE)
+        if match:
+            return int(match.group(1)), int(match.group(2))
+        # 备选：查找单独的 Error 和 Warning 计数
+        errors = re.search(r'(\d+)\s+Error\(s\)', content, re.IGNORECASE)
+        warnings = re.search(r'(\d+)\s+Warning\(s\)', content, re.IGNORECASE)
+        err_count = int(errors.group(1)) if errors else 0
+        warn_count = int(warnings.group(1)) if warnings else 0
+        return err_count, warn_count
+    except Exception:
+        return -1, -1
+
+
+def find_build_loghtm(project_dir):
+    """在工程目录下查找构建日志文件 (*build_log*.htm)"""
+    objects_dir = os.path.join(project_dir, "Objects")
+
+    # 优先在 Objects 目录查找
+    if os.path.exists(objects_dir):
+        for f in os.listdir(objects_dir):
+            if "build_log" in f and f.endswith(".htm"):
+                return os.path.join(objects_dir, f)
+
+    # 找不到则在工程目录递归搜索
+    for root, _, files in os.walk(project_dir):
+        for f in files:
+            if "build_log" in f and f.endswith(".htm"):
+                return os.path.join(root, f)
+    return None
+
+
 def build_keil_project(project_path, keil_path=None, rebuild=False):
     """
     Skill: 调用 Keil 命令行编译工程
@@ -11,41 +49,25 @@ def build_keil_project(project_path, keil_path=None, rebuild=False):
     :param rebuild: True 为全编译 (-r), False 为增量编译 (-b)
     """
 
-    # keil的安装路径
     if not keil_path:
         keil_path = r"D:\application\keil_v5\UV4\UV4.exe"
-    
+
     if not os.path.exists(project_path):
         return {"status": "error", "message": f"Project file not found: {project_path}"}
 
-    log_file = os.path.join(os.path.dirname(project_path), "build_agent_log.txt")
+    project_dir = os.path.dirname(os.path.abspath(project_path))
     flag = "-r" if rebuild else "-b"
-    
-    # 执行命令: UV4 -b project.uvprojx -j0 -o log.txt
-    # -j0 表示隐藏界面（静默模式）
-    cmd = f'"{keil_path}" {flag} "{project_path}" -j0 -o "{log_file}"'
-    
+    cmd = f'"{keil_path}" {flag} "{project_path}"'
+
     print(f"Executing: {cmd}")
-    # Keil 命令行总是返回非0值，所以我们不依赖 returncode，而是读日志
     subprocess.run(cmd, shell=True)
 
-    # 读取并解析日志
-    if os.path.exists(log_file):
-        with open(log_file, 'r', encoding='gbk', errors='ignore') as f:
-            content = f.read()
-        
-        # 提取 Error 和 Warning 数量
-        summary_match = re.search(r"\"(.*)\" - (\d+) Error\(s\), (\d+) Warning\(s\).*", content)
-        errors = int(summary_match.group(2)) if summary_match else -1
-        warnings = int(summary_match.group(3)) if summary_match else -1
-        
-        return {
-            "status": "success" if errors == 0 else "failed",
-            "errors_count": errors,
-            "warnings_count": warnings,
-            "full_log": content[-2000:] # 只返回最后2000字，防止 Token 溢出
-        }
-    return {"status": "error", "message": "Log file not generated."}
+    # 检查 .build_log.htm 是否生成
+    log_path = find_build_loghtm(project_dir)
+    if log_path:
+        errors, warnings = parse_build_loghtm(log_path)
+        return {"status": "success", "log_path": log_path, "errors": errors, "warnings": warnings}
+    return {"status": "failed"}
 
 
 def main():

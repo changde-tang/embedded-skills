@@ -40,17 +40,19 @@ Returns JSON format result:
 ```json
 {
   "status": "success",       // "success" or "failed" or "error"
-  "errors_count": 0,         // Number of build errors
-  "warnings_count": 3,       // Number of build warnings
-  "full_log": "..."          // Build log (last 2000 characters)
+  "log_path": "C:\\project\\Objects\\GD32F303RCT6.build_log.htm",  // 编译日志路径
+  "errors": 0,                // 编译错误数
+  "warnings": 3               // 编译警告数
 }
 ```
 
 ## Notes
 
 - Keil default installation path: `D:\application\keil_v5\UV4\UV4.exe`, if different please specify with `-k`
-- Build log is also written to `build_agent_log.txt` in the project directory
-- `errors_count` of -1 indicates log parsing failed (compiler did not output summary line normally)
+- Build output is printed directly to terminal (no log file generated)
+- Build success is determined by checking if `*build_log*.htm` exists after compilation
+  - First checks: `<project_dir>\Objects\*build_log*.htm`
+  - Falls back to searching recursively in project directory
 
 ## Typical Workflow
 

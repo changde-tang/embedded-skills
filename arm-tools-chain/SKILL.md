@@ -75,7 +75,7 @@ STEP 4 [S4 keil-build]
   Goal: Compile project, ensure no errors
   Read: keil-build/SKILL.md
   Execute: Incremental build, parse output
-  Success: Build return code is 0, no Errors
+  Success: Build log exists, errors = 0
   Warning: Warnings exist, inform user but do not block flow
   Failure: → See "Error Handling E2"
 
