@@ -14,9 +14,31 @@ ARM MCU 开发全流程 Skill 集合，涵盖工程解析、编译、烧录、�
 | `jlink-download/` | J-Link 固件烧录 |
 | `jlink-rtt/` | J-Link RTT 实时日志读取 |
 
+## 工作流示例
+
+### 解析工程
+
+![image-20260426091930445](images/image-20260426091930445.png)
+
+### 编译+修复+编译
+
+![image-20260426091638154](images/image-20260426091638154.png)
+
+### 固件下载+RTT日志获取
+
+#### 建议keil中配置生成bin文件命令
+
+![image-20260426092247605](images/image-20260426092247605.png)
+
+#### 使用效果
+
+![image-20260426092644537](images/image-20260426092644537.png)
+
+
+
 ## 环境要求
 
-- **Python**: 3.x（keil 系列脚本仅用标准库）
+- **Python**: 3.x（keil 系列脚本仅用标准库）下载网址[Python Release Python 3.10.0 | Python.org](https://www.python.org/downloads/release/python-3100/)
 - **J-Link Python**: `pip install pylink`（jlink-download / jlink-rtt 专用）
 - **Keil MDK**: UV4.exe（keil-build 专用）
 - **J-Link 驱动**: J-Link 硬件烧录/调试
@@ -57,7 +79,11 @@ S1 解析工程 → S2 修改工程 → S3 注入日志 → S4 编译 → S5 烧
 ### Keil UV4.exe 路径
 
 **文件**：`keil-build/py_keil_build.py`
-**位置**：第 16 行
+**位置**：如下图所示
+
+![](./images/PixPin_2026-04-26_08-53-46.png)
+
+替换keil5中UV4.exe的格式如下
 
 ```python
 keil_path = r"D:\application\keil_v5\UV4\UV4.exe"
